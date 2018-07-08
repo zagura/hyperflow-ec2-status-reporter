@@ -1,0 +1,24 @@
+{
+  "name": "hyperflow-ec2-status-reporter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krystianpawlik/hyperflow-ec2-status-reporter.git"
+  },
+  "author": "Krystian Pawlik",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/krystianpawlik/hyperflow-ec2-status-reporter/issues"
+  },
+  "homepage": "https://github.com/krystianpawlik/hyperflow-ec2-status-reporter#readme",
+  "dependencies": {
+    "aws-sdk": "2.247.1",
+    "influxdb-nodejs":"2.7.6",
+    "os-utils":"0.0.14"
+  }
+}
