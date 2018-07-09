@@ -18,7 +18,8 @@
   "homepage": "https://github.com/krystianpawlik/hyperflow-ec2-status-reporter#readme",
   "dependencies": {
     "aws-sdk": "2.247.1",
-    "influxdb-nodejs":"2.7.6",
-    "os-utils":"0.0.14"
+    "influxdb-nodejs": "2.7.6",
+    "os-utils": "0.0.14",
+    "systeminformation": "^3.42.3"
   }
 }
