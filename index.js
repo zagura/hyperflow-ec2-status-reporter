@@ -3,6 +3,7 @@
 var METRIC_COLLECTOR = process.env.METRIC_COLLECTOR ? process.env.METRIC_COLLECTOR : 'http://localhost:8086/hyperflow_tests';
 var INTERFACE = process.env.INTERFACE ? process.env.INTERFACE : 'eth0';
 
+var DISK_DEVICE = process.env.DISK_DEVICE ? process.env.DISK_DEVICE : 'xvda1';
 
 var os = require('os');
 const si = require('systeminformation');
@@ -10,6 +11,8 @@ const si = require('systeminformation');
 var os_utils = require('os-utils');
 var AWS = require('aws-sdk');
 const Influx = require('influxdb-nodejs');
+
+var diskStat = require('disk-stat');
 
 var meta  = new AWS.MetadataService();
 
@@ -51,7 +54,25 @@ function collectUsage(instance_id)
             writeDataToDatabase("hyperflow_connection_transferred",{ transferred_bytes_per_s:data.tx_sec},{ec2_incance_id: instance_id});
         }
     });
-    
+
+
+    diskStat.usageRead({
+        device: DISK_DEVICE,
+        units: 'KiB',
+      },
+      function(kbPerSecond) {
+        console.log(kbPerSecond);
+        writeDataToDatabase("hyperflow_disc_read",{ read_bytes_per_s:kbPerSecond},{ec2_incance_id: instance_id});
+    });
+
+    diskStat.usageWrite({
+        device: DISK_DEVICE,
+        units: 'KiB',
+      },
+      function(kbPerSecond) {
+        console.log(kbPerSecond);
+        writeDataToDatabase("hyperflow_disc_write",{ write_bytes_per_s:kbPerSecond},{ec2_incance_id: instance_id});
+    });
 }
 
 
