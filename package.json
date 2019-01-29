@@ -8,19 +8,20 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/krystianpawlik/hyperflow-ec2-status-reporter.git"
+    "url": "git+https://github.com/hyperflow-wms/hyperflow-ec2-status-reporter.git"
   },
   "author": "Krystian Pawlik",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/krystianpawlik/hyperflow-ec2-status-reporter/issues"
+    "url": "https://github.com/hyperflow-wms/hyperflow-ec2-status-reporter/issues"
   },
-  "homepage": "https://github.com/krystianpawlik/hyperflow-ec2-status-reporter#readme",
+  "homepage": "https://github.com/hyperflow-wms/hyperflow-ec2-status-reporter#readme",
   "dependencies": {
     "aws-sdk": "2.247.1",
     "disk-stat": "^1.0.4",
     "influxdb-nodejs": "2.7.6",
     "os-utils": "0.0.14",
+    "prom-client": "11.2.1",
     "systeminformation": "^3.42.3"
   }
 }

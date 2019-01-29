@@ -1,57 +1,78 @@
 #!/usr/bin/env node
 
-var METRIC_COLLECTOR = process.env.METRIC_COLLECTOR ? process.env.METRIC_COLLECTOR : 'http://localhost:8086/hyperflow_tests';
 var INTERFACE = process.env.INTERFACE ? process.env.INTERFACE : 'eth0';
-
 var DISK_DEVICE = process.env.DISK_DEVICE ? process.env.DISK_DEVICE : 'xvda1';
 
-var os = require('os');
+const os = require('os');
 const si = require('systeminformation');
 
 var os_utils = require('os-utils');
-var AWS = require('aws-sdk');
-const Influx = require('influxdb-nodejs');
+const AWS = require('aws-sdk');
+const http = require('http');
+const Prometeus = require('prom-client');
 
 var diskStat = require('disk-stat');
-
 var meta  = new AWS.MetadataService();
 
-function writeDataToDatabase(metric, data,tag)
-{
-    //console.log("json %s %j",metric,data);
-    const client = new Influx(METRIC_COLLECTOR);
+const collectDefaultMetrics = Prometeus.collectDefaultMetrics;
+const register = Prometeus.register
 
-    // data["wfid"] = that.getWfId();
-    // data["hfId"] = that.getHfId();
+const int_tx_gauge = new Prometeus.Gauge({
+    name: 'hyperflow_connection_transferred',
+    help: 'hyperflow hyperflow_connection_transferred',
+    labelNames: ['instance_id']
+});
+const int_rx_gauge = new Prometeus.Gauge({
+    name: 'hyperflow_connection_received',
+    help: 'hyperflow hyperflow_connection_received',
+    labelNames: ['instance_id']
+});
 
-    client.write(metric)
-    .field(data)
-    .tag(tag)
-    .then(() => true)
-    .catch(console.error);
-}
+collectDefaultMetrics({ timeout: 1000 });
+
+const cpu_gauge = new Prometeus.Gauge({
+    name: 'hyperflow_cpu_usage_ec2',
+    help: 'Usage of cpu for ec2 instance',
+    labelNames: ['instance_id']
+});
+
+const mem_gauge = new Prometeus.Gauge({
+    name: 'hyperflow_memory_usage_ec2',
+    help: 'Usage memory of EC2 instance',
+    labelNames: ['instance_id']
+});
+
+const disk_usage_read = new Prometeus.Gauge({
+    name: 'hyperflow_disc_read',
+    help: 'hyperflow_disc_read',
+    labelNames: ['instance_id']
+});
+
+const disk_usage_write = new Prometeus.Gauge({
+    name: 'hyperflow_disc_write',
+    help: 'hyperflow_disc_write',
+    labelNames: ['instance_id']
+});
 
 function collectUsage(instance_id)
 {
+
     os_utils.cpuUsage(function(v){
-        //console.log( 'CPU Usage (%): ' + v );
-        writeDataToDatabase("hyperflow_cpu_usage_ec2",{ cpu_usage:v},{ec2_incance_id: instance_id});
+        cpu_gauge.set({'instance_id': instance_id}, v, Date.now());
     });
 
     si.mem(function(data) {
-        //console.log('Memory used:');
-        var used_memory=data.used/1024;
-        //console.log(data.used/1024);
-        writeDataToDatabase("hyperflow_memory_usage_ec2",{ used_memory:used_memory},{ec2_incance_id: instance_id});
+        mem_gauge.set({'instance_id' : instance_id}, data.used , Date.now());
     });
+
 
     si.networkStats(INTERFACE,function(data){
         //console.log('eth0 used:');
         console.log(data);
         if(data.rx_sec!=-1)
         {
-            writeDataToDatabase("hyperflow_connection_received",{ received_bytes_per_s:data.rx_sec},{ec2_incance_id: instance_id});
-            writeDataToDatabase("hyperflow_connection_transferred",{ transferred_bytes_per_s:data.tx_sec},{ec2_incance_id: instance_id});
+            int_tx_gauge.set({'instance_id': instance_id}, data.tx_sec, Date.now());
+            int_rx_gauge.set({'instance_id': instance_id}, data.rx_sec, Date.now());
         }
     });
 
@@ -62,7 +83,7 @@ function collectUsage(instance_id)
       },
       function(kbPerSecond) {
         console.log(kbPerSecond);
-        writeDataToDatabase("hyperflow_disc_read",{ read_bytes_per_s:kbPerSecond},{ec2_incance_id: instance_id});
+        disk_usage_read.set({'instance_id': instance_id}, kbPerSecond, Date.now());
     });
 
     diskStat.usageWrite({
@@ -71,10 +92,16 @@ function collectUsage(instance_id)
       },
       function(kbPerSecond) {
         console.log(kbPerSecond);
-        writeDataToDatabase("hyperflow_disc_write",{ write_bytes_per_s:kbPerSecond},{ec2_incance_id: instance_id});
+        disk_usage_write.set({'instance_id': instance_id}, kbPerSecond, Date.now());
     });
+    
 }
 
+setInterval(function () {
+    collectUsage('test');
+}, 1000);
+
+console.log(register.metrics(timestamp=true))
 
 meta.request("/latest/meta-data/instance-id", function(err, data){
     var instance_id = "undef" ;
@@ -91,3 +118,14 @@ meta.request("/latest/meta-data/instance-id", function(err, data){
         collectUsage(instance_id);
     }, 1000);
 });
+
+// meta.request("/metric/disk_usage", function(err, data) {
+
+// }
+
+http.createServer(function(req, res) {
+    if (req.url == '/metrics') {
+        res.writeHeader(200);
+        res.end(register.metrics(timestamp=true));
+    } else (res.writeHeader(404));
+}).listen(9100);

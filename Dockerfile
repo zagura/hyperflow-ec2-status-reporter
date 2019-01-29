@@ -2,9 +2,10 @@ FROM ubuntu:18.04
 
 RUN apt-get update && apt-get install -y \
     npm
-    
-COPY . .
+WORKDIR /hf-status
+COPY .  /hf-status
 
 RUN npm install
 
-CMD ./index.js
+EXPOSE 9100
+CMD /hf-status/index.js
